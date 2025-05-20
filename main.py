@@ -1,21 +1,26 @@
 import logging
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 import config
-from handlers.auth import start_command, logout_handler
-from handlers.masterclasses import classes_handler, masterclass_callback
+from handlers.auth import start_handler, logout_handler, menu_handler
+from handlers.masterclasses import classes_handler, masterclass_callback, phone_handler
+from handlers.profile import about_handler
+from handlers.certificates import certificates_handler, cert_callback_handler, cert_phone_handler
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    updater = Updater(config.TELEGRAM_TOKEN, use_context=True)
-    dp = updater.dispatcher
+    app = ApplicationBuilder().token(config.TELEGRAM_TOKEN).build()
+    app.add_handler(start_handler)
+    app.add_handler(logout_handler)
+    app.add_handler(classes_handler)
+    app.add_handler(CallbackQueryHandler(masterclass_callback, pattern=r'^mc:'))
+    app.add_handler(about_handler)
+    app.add_handler(phone_handler)
+    app.add_handler(certificates_handler)
+    app.add_handler(cert_callback_handler)
+    app.add_handler(cert_phone_handler)
+    app.add_handler(menu_handler)
 
-    dp.add_handler(CommandHandler('start', start_command))
-    dp.add_handler(logout_handler)
-    dp.add_handler(classes_handler)
-    dp.add_handler(CallbackQueryHandler(masterclass_callback, pattern=r'^mc:'))
-
-    updater.start_polling()
-    updater.idle()
+    app.run_polling()
 
 if __name__ == '__main__':
     main()
