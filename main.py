@@ -5,10 +5,12 @@ from handlers.auth import start_handler, logout_handler, menu_handler
 from handlers.masterclasses import classes_handler, masterclass_callback, phone_handler
 from handlers.profile import about_handler
 from handlers.certificates import certificates_handler, cert_callback_handler, cert_phone_handler
+from services.api_client import LesJoursAPI
 
 def main():
     logging.basicConfig(level=logging.INFO)
     app = ApplicationBuilder().token(config.TELEGRAM_TOKEN).build()
+    app.bot_data['api'] = LesJoursAPI(config.API_BASE_URL)
     app.add_handler(start_handler)
     app.add_handler(logout_handler)
     app.add_handler(classes_handler)
@@ -24,3 +26,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+ 

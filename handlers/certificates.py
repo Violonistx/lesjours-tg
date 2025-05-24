@@ -1,13 +1,11 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
-from services.api_client import LesJoursAPI
 import config
-
-api = LesJoursAPI(config.API_BASE_URL)
 
 user_certificate = {}
 
 async def list_certificates(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    api = context.bot_data['api']
     user_id = update.effective_user.id
     data = api.list_certificates(user_id)
     buttons = [
@@ -38,6 +36,7 @@ async def certificate_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
 async def cert_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    api = context.bot_data['api']
     user = update.effective_user
     contact = update.message.contact
     if not contact or contact.user_id != user.id:

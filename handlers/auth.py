@@ -1,10 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
 import logging
-from services.api_client import LesJoursAPI
 import config
-
-api = LesJoursAPI(config.API_BASE_URL)
 
 def get_main_menu():
     return ReplyKeyboardMarkup([
@@ -13,6 +10,7 @@ def get_main_menu():
     ], resize_keyboard=True)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    api = context.bot_data['api']
     user = update.effective_user
     try:
         api.ensure_auth(user.id, user.first_name or '', user.last_name or '')
