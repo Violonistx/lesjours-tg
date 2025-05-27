@@ -9,5 +9,7 @@ __pycache__/
 .idea/
 .cursor/
 .cursor/rules
+services/id_token.json
+services/tokens.json
 # Virtual env
 venv/
