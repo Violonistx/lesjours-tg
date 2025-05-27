@@ -105,13 +105,19 @@ class LesJoursAPI:
 
     def list_certificates(self, user_id):
         url = f"{self.base_url}/api/certificates/certificates/"
-        resp = requests.get(url, headers=self._get_headers(user_id))
+        headers = self._get_headers(user_id)
+        if not headers.get('Authorization'):
+            raise Exception('Требуется авторизация! Пожалуйста, нажмите /start для входа.')
+        resp = requests.get(url, headers=headers)
         resp.raise_for_status()
         return resp.json()
 
     def buy_certificate(self, user_id, data):
         url = f"{self.base_url}/api/certificates/buy/"
-        resp = requests.post(url, json=data, headers=self._get_headers(user_id))
+        headers = self._get_headers(user_id)
+        if not headers.get('Authorization'):
+            raise Exception('Требуется авторизация! Пожалуйста, нажмите /start для входа.')
+        resp = requests.post(url, json=data, headers=headers)
         resp.raise_for_status()
         return resp.json()
 
@@ -128,15 +134,15 @@ class LesJoursAPI:
             next_url = data.get('next')
         return {'results': all_results}
 
-    def add_to_cart(self, user_id, product_unit_id, guests_amount=1):
-        url = f"{self.base_url}/api/order/cart/{user_id}/{product_unit_id}/{guests_amount}/"
-        resp = requests.post(url, headers=self._get_headers(user_id))
+    def add_to_cart(self, telegram_user_id, api_user_id, product_unit_id, guests_amount=1):
+        url = f"{self.base_url}/api/order/cart/{api_user_id}/{product_unit_id}/{guests_amount}/"
+        resp = requests.post(url, headers=self._get_headers(telegram_user_id))
         resp.raise_for_status()
         return resp.json()
 
-    def checkout(self, user_id, data):
-        url = f"{self.base_url}/api/order/checkout/{user_id}/"
-        resp = requests.post(url, json=data, headers=self._get_headers(user_id))
+    def checkout(self, telegram_user_id, api_user_id, data):
+        url = f"{self.base_url}/api/order/checkout/{api_user_id}/"
+        resp = requests.post(url, json=data, headers=self._get_headers(telegram_user_id))
         resp.raise_for_status()
         return resp.json()
 
@@ -162,4 +168,13 @@ class LesJoursAPI:
                 return api_user_id
         except Exception as e:
             print('Ошибка при получении user_id из профиля:', e)
-        return None 
+        return None
+
+    def list_orders(self, user_id):
+        url = f"{self.base_url}/api/order/orders/"
+        headers = self._get_headers(user_id)
+        if not headers.get('Authorization'):
+            raise Exception('Требуется авторизация! Пожалуйста, нажмите /start для входа.')
+        resp = requests.get(url, headers=headers)
+        resp.raise_for_status()
+        return resp.json() 

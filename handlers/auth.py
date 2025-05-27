@@ -6,7 +6,8 @@ import config
 def get_main_menu():
     return ReplyKeyboardMarkup([
         ['📋 Мастер-классы', '🎁 Сертификаты'],
-        ['ℹ️ О нас', '❌ Отмена бронирования']
+        ['ℹ️ О нас', '❌ Отмена бронирования'],
+        ['🛒 Мои заказы']
     ], resize_keyboard=True)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -42,6 +43,9 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == '🎁 Сертификаты':
         from handlers.certificates import list_certificates
         return await list_certificates(update, context)
+    elif text == '🛒 Мои заказы':
+        from handlers.orders import list_orders
+        return await list_orders(update, context)
     elif text == 'ℹ️ О нас':
         from handlers.profile import about_command
         return await about_command(update, context)

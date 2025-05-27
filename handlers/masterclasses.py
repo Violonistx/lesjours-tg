@@ -96,10 +96,19 @@ async def masterclass_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         button = InlineKeyboardButton('Записаться', callback_data=f'mc:book:{event_id}')
         await query.answer()
-        await query.edit_message_text(
-            text, parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup([[button]])
-        )
+        # Отправляем фото, если есть
+        photo_url = None
+        bucket = mc.get('bucket_link')
+        if bucket and isinstance(bucket, list) and bucket[0].get('url'):
+            photo_url = bucket[0]['url']
+        if photo_url:
+            await query.message.reply_photo(photo_url, caption=text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup([[button]]))
+            await query.delete_message()
+        else:
+            await query.edit_message_text(
+                text, parse_mode='HTML',
+                reply_markup=InlineKeyboardMarkup([[button]])
+            )
         return
 
     if action == 'book':
@@ -138,16 +147,19 @@ async def phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     # Отправляем данные в API
     try:
-        api.add_to_cart(api_user_id, event_id, guests_amount=1)
+        api.add_to_cart(user_id, api_user_id, event_id, guests_amount=1)
         # Чекаут: передаём данные пользователя
         checkout_data = {
             'phone': contact.phone_number,
             'telegram_id': user_id,
             'telegram_username': user.username or ''
         }
-        api.checkout(api_user_id, checkout_data)
+        api.checkout(user_id, api_user_id, checkout_data)
         await update.message.reply_text(
-            "Вы успешно записались на мастер-класс! Заказ оформлен, с вами свяжется менеджер для подтверждения."
+            "Вы успешно записались на мастер-класс! Заказ оформлен, с вами свяжется менеджер для подтверждения.\n\nЕсли возникли вопросы, напишите нашему менеджеру: @les_jour_mk",
+            reply_markup=ReplyKeyboardMarkup([
+                ['В главное меню']
+            ], resize_keyboard=True)
         )
     except Exception as e:
         tb = traceback.format_exc()
