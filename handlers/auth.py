@@ -54,6 +54,12 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'Для отмены бронирования напишите нашему менеджеру: @les_jour_mk',
             reply_markup=get_main_menu()
         )
+    elif text == 'В главное меню':
+        # Просто повторно показываем главное меню без упрёка
+        await update.message.reply_text(
+            'Вы в главном меню. Выберите действие:',
+            reply_markup=get_main_menu()
+        )
     else:
         await update.message.reply_text(
             f'Пожалуйста, используйте кнопки меню ниже. (Вы отправили: {text})',

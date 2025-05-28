@@ -6,50 +6,43 @@ import logging
 user_certificate = {}
 
 async def list_certificates(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    api = context.bot_data['api']
-    user_id = str(update.effective_user.id)
-    token = api.tokens.get(user_id)
-    if not token:
-        await update.message.reply_text('Ошибка авторизации! Пожалуйста, нажмите /start для повторной авторизации.')
-        return
-    try:
-        data = api.list_certificates(user_id)
-    except Exception as e:
-        if 'Требуется авторизация' in str(e):
-            await update.message.reply_text('Ошибка авторизации! Пожалуйста, нажмите /start для повторной авторизации.')
-            return
-        else:
-            await update.message.reply_text(f'Ошибка при получении сертификатов: {e}')
-            return
-    for item in data['results']:
-        photo_url = None
-        if item.get('image'):
-            photo_url = item['image']
-        elif item.get('bucket_link') and isinstance(item['bucket_link'], list) and item['bucket_link'][0].get('url'):
-            photo_url = item['bucket_link'][0]['url']
-        caption = f"{item['title']}\nЦена: {item['price']}₽"
-        buttons = [[InlineKeyboardButton(f"Купить", callback_data=f'cert:buy:{item["id"]}')]]
-        if photo_url:
-            await update.message.reply_photo(photo_url, caption=caption, reply_markup=InlineKeyboardMarkup(buttons))
-        else:
-            await update.message.reply_text(caption, reply_markup=InlineKeyboardMarkup(buttons))
+    denominations = [1,2,3,4,5,7,10,15]
+    buttons = []
+    for d in denominations:
+        buttons.append([InlineKeyboardButton(f"Подарочный сертификат на {d} 000 ₽", callback_data=f'cert:nom:{d*1000}')])
+    await update.message.reply_text(
+        'Выберите номинал сертификата:',
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+    return
 
 async def certificate_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     _, action, value = query.data.split(':', 2)
-    cert_id = int(value)
-    if action == 'buy':
-        user_id = query.from_user.id
-        user_certificate[user_id] = cert_id
-        reply_markup = ReplyKeyboardMarkup(
-            [[KeyboardButton('Отправить номер телефона', request_contact=True)]],
-            resize_keyboard=True, one_time_keyboard=True
-        )
-        await query.message.reply_text(
-            'Пожалуйста, отправьте свой номер телефона для покупки сертификата:',
-            reply_markup=reply_markup
-        )
-        await query.answer()
+    if action == 'nom':
+        amount = int(value)
+        user_id = str(query.from_user.id)
+        api = context.bot_data['api']
+        api_user_id = api.get_api_user_id(user_id)
+        if not api_user_id:
+            await query.message.reply_text('Ошибка: не удалось определить пользователя. Попробуйте /start.')
+            return
+        try:
+            api.add_to_cart_certificate(user_id, api_user_id, amount)
+            reply_markup = ReplyKeyboardMarkup(
+                [[KeyboardButton('Отправить номер телефона', request_contact=True)]],
+                resize_keyboard=True, one_time_keyboard=True
+            )
+            context.user_data['cert_id'] = 0
+            context.user_data['cert_price'] = amount
+            await query.message.reply_text(
+                'Пожалуйста, отправьте свой номер телефона для покупки сертификата:',
+                reply_markup=reply_markup
+            )
+            await query.answer()
+        except Exception as e:
+            await query.message.reply_text(f'Ошибка при добавлении сертификата в корзину: {e}')
+            return
         return
 
 async def cert_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -64,24 +57,28 @@ async def cert_phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not token:
         await update.message.reply_text('Ошибка авторизации! Пожалуйста, нажмите /start для повторной авторизации.')
         return
-    cert_id = user_certificate.pop(user_id, None)
-    if not cert_id:
+    cert_id = context.user_data.get('cert_id')
+    price = context.user_data.get('cert_price')
+    api_user_id = api.get_api_user_id(user_id)
+    if cert_id is None or price is None or not api_user_id:
         await update.message.reply_text('Не удалось определить сертификат для покупки. Попробуйте ещё раз.')
         return
     try:
-        order = api.buy_certificate(user_id, {
-            'certificate_id': cert_id,
+        # Чекаут
+        order = api.checkout(user_id, api_user_id, {
+            'amount': price,
             'phone': contact.phone_number,
             'telegram_id': user_id,
             'telegram_username': user.username or ''
         })
         await update.message.reply_text(
-            f"Вы успешно приобрели сертификат! Детали отправлены на ваш телефон."
+            f"Вы оформили сертификат на сумму {price} ₽. Для уточнения деталей свяжитесь с менеджером.",
+            reply_markup=ReplyKeyboardMarkup([
+                ['В главное меню'],
+                ['Связаться с менеджером']
+            ], resize_keyboard=True)
         )
     except Exception as e:
-        if 'Требуется авторизация' in str(e):
-            await update.message.reply_text('Ошибка авторизации! Пожалуйста, нажмите /start для повторной авторизации.')
-            return
         await update.message.reply_text(f'Ошибка при покупке сертификата: {e}')
         logging.exception(e)
 
