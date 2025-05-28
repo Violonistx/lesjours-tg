@@ -33,7 +33,7 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'telegram_username': user.username or ''
             })
             await update.message.reply_text(
-                f"Вы оформили сертификат на сумму {price} ₽. Для уточнения деталей свяжитесь с менеджером.",
+                "Вы успешно оформили сертификат! Заказ оформлен, с вами свяжется менеджер для подтверждения.\n\nЕсли возникли вопросы, напишите нашему менеджеру: @les_jour_mk",
                 reply_markup=ReplyKeyboardMarkup([
                     ['В главное меню'],
                     ['Связаться с менеджером']
