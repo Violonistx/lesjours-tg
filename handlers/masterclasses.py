@@ -67,8 +67,8 @@ async def list_masterclasses(update: Update, context: ContextTypes.DEFAULT_TYPE)
     elif update.callback_query:
         await update.callback_query.edit_message_text(
             'Список ближайших событий (мастер-классов):',
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
     return
 
 async def masterclass_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -113,13 +113,14 @@ async def masterclass_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         else:
             await query.edit_message_text(
                 text, parse_mode='HTML',
-                reply_markup=InlineKeyboardMarkup([[button]])
-            )
+            reply_markup=InlineKeyboardMarkup([[button]])
+        )
         return
 
     if action == 'book':
         # Сохраняем id мастер-класса для пользователя
-        user_booking[user_id] = event_id
+        context.user_data['awaiting'] = 'masterclass'
+        context.user_data['event_id'] = event_id
         # Запрашиваем телефон через кнопку Telegram
         reply_markup = ReplyKeyboardMarkup(
             [[KeyboardButton('Отправить номер телефона', request_contact=True)]],
@@ -133,50 +134,3 @@ async def masterclass_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
 classes_handler = CommandHandler('classes', list_masterclasses)
-
-async def phone_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    api = context.bot_data['api']
-    user = update.effective_user
-    contact = update.message.contact
-    if not contact or contact.user_id != user.id:
-        await update.message.reply_text('Пожалуйста, используйте кнопку для отправки своего номера телефона.')
-        return
-    user_id = user.id
-    event_id = user_booking.pop(user_id, None)
-    if not event_id:
-        await update.message.reply_text('Не удалось определить мастер-класс для бронирования. Попробуйте ещё раз.')
-        return
-    # Получаем внутренний user_id из API
-    api_user_id = api.get_api_user_id(user_id)
-    if not api_user_id:
-        await update.message.reply_text('Ошибка: не удалось определить пользователя на сервере. Попробуйте /start.')
-        return
-    # Отправляем данные в API
-    try:
-        api.add_to_cart(user_id, api_user_id, event_id, guests_amount=1)
-        # Чекаут: передаём данные пользователя
-        checkout_data = {
-            'phone': contact.phone_number,
-            'telegram_id': user_id,
-            'telegram_username': user.username or ''
-        }
-        api.checkout(user_id, api_user_id, checkout_data)
-        await update.message.reply_text(
-            "Вы успешно записались на мастер-класс! Заказ оформлен, с вами свяжется менеджер для подтверждения.\n\nЕсли возникли вопросы, напишите нашему менеджеру: @les_jour_mk",
-            reply_markup=ReplyKeyboardMarkup([
-                ['В главное меню']
-            ], resize_keyboard=True)
-        )
-    except Exception as e:
-        tb = traceback.format_exc()
-        err_text = ''
-        if isinstance(e, requests.HTTPError) and hasattr(e, 'response'):
-            err_text = e.response.text
-            await update.message.reply_text(f'Ошибка при бронировании (HTTP): {e.response.status_code}\n{err_text}')
-        else:
-            err_text = str(e)
-            await update.message.reply_text(f'Ошибка при бронировании (Exception): {err_text}')
-        # Отправим traceback отдельным сообщением (для отладки)
-        await update.message.reply_text(f'Traceback:\n{tb}')
-
-phone_handler = MessageHandler(filters.CONTACT, phone_handler)

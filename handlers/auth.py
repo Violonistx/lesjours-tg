@@ -60,6 +60,11 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'Вы в главном меню. Выберите действие:',
             reply_markup=get_main_menu()
         )
+    elif text == 'Связаться с менеджером':
+        await update.message.reply_text(
+            'Менеджер: @les_jour_mk\nВы можете написать ему напрямую в Telegram.',
+            reply_markup=get_main_menu()
+        )
     else:
         await update.message.reply_text(
             f'Пожалуйста, используйте кнопки меню ниже. (Вы отправили: {text})',
