@@ -59,10 +59,16 @@ async def list_masterclasses(update: Update, context: ContextTypes.DEFAULT_TYPE)
         nav.append(InlineKeyboardButton('Вперёд ›', callback_data=f'mc:page:{page+1}'))
     if nav:
         buttons.append(nav)
-    await update.message.reply_text(
-        'Список ближайших событий (мастер-классов):',
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+    if update.message:
+        await update.message.reply_text(
+            'Список ближайших событий (мастер-классов):',
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(
+            'Список ближайших событий (мастер-классов):',
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
     return
 
 async def masterclass_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):

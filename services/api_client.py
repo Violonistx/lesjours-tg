@@ -134,9 +134,15 @@ class LesJoursAPI:
         url = f"{self.base_url}/api/certificates/certificates/"
         headers = self._get_headers(user_id)
         print('[CERTIFICATES] user_id:', user_id, 'token:', self.tokens.get(user_id), 'headers:', headers)
-        if not headers.get('Authorization'):
-            raise Exception('Требуется авторизация! Пожалуйста, нажмите /start для входа.')
         resp = requests.get(url, headers=headers)
+        print('CERTIFICATES RESPONSE:', resp.status_code, resp.text)  # для отладки
+        if resp.status_code == 404:
+            # Пробуем без /api/
+            url2 = f"{self.base_url}/certificates/certificates/"
+            resp2 = requests.get(url2, headers=headers)
+            print('CERTIFICATES RESPONSE (no /api/):', resp2.status_code, resp2.text)
+            resp2.raise_for_status()
+            return resp2.json()
         resp.raise_for_status()
         return resp.json()
 
@@ -212,11 +218,25 @@ class LesJoursAPI:
 
     def list_orders(self, user_id):
         user_id = str(user_id)
-        url = f"{self.base_url}/api/order/orders/"
+        api_user_id = self.get_api_user_id(user_id)
+        if not api_user_id:
+            raise Exception('Не удалось определить внутренний user_id. Пройдите /start.')
+        url = f"{self.base_url}/api/order/user_orders/{api_user_id}"
         headers = self._get_headers(user_id)
-        print('[ORDERS] user_id:', user_id, 'token:', self.tokens.get(user_id), 'headers:', headers)
+        print('[ORDERS] url:', url, 'user_id:', user_id, 'token:', self.tokens.get(user_id), 'headers:', headers)
         if not headers.get('Authorization'):
             raise Exception('Требуется авторизация! Пожалуйста, нажмите /start для входа.')
         resp = requests.get(url, headers=headers)
+        resp.raise_for_status()
+        return resp.json()
+
+    def add_to_cart_certificate(self, telegram_user_id, api_user_id, amount):
+        telegram_user_id = str(telegram_user_id)
+        api_user_id = str(api_user_id)
+        amount = str(amount)
+        url = f"{self.base_url}/api/order/cart/{api_user_id}/{amount}?is_certificate=true"
+        headers = self._get_headers(telegram_user_id)
+        print('[ADD TO CART CERTIFICATE] telegram_user_id:', telegram_user_id, 'token:', self.tokens.get(telegram_user_id), 'headers:', headers, 'amount:', amount)
+        resp = requests.post(url, headers=headers)
         resp.raise_for_status()
         return resp.json() 
